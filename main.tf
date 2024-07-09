@@ -33,8 +33,36 @@ variable "route53_record_name" {
   type        = string
 }
 
+variable "ecr_repository_name" {
+  description = "The name of the ECR repository"
+  type        = string
+}
+
+variable "new_image_tag" {
+  description = "The new image tag to push"
+  type        = string
+}
+
 provider "aws" {
   region = var.region
+}
+
+# Fetch ECR repository details
+data "aws_ecr_repository" "my_repo" {
+  name = var.ecr_repository_name
+}
+
+# Fetch the latest image from the ECR repository
+data "aws_ecr_image" "latest_image" {
+  repository_name = data.aws_ecr_repository.my_repo.name
+  most_recent     = true
+}
+
+# Push new image tag
+resource "aws_ecr_image" "new_image" {
+  repository_name = data.aws_ecr_repository.my_repo.name
+  image_tag       = var.new_image_tag
+  image_digest    = data.aws_ecr_image.latest_image.image_digest
 }
 
 # Lambda function
@@ -102,4 +130,14 @@ resource "aws_route53_record" "api_gateway_record" {
 output "api_endpoint" {
   description = "The HTTP API endpoint"
   value       = aws_apigatewayv2_api.http_api.api_endpoint
+}
+
+output "latest_image_tag" {
+  description = "The latest image tag"
+  value       = data.aws_ecr_image.latest_image.image_tag
+}
+
+output "new_image_tag" {
+  description = "The new image tag"
+  value       = aws_ecr_image.new_image.image_tag
 }

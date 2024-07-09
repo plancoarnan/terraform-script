@@ -93,7 +93,7 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 resource "aws_route53_record" "api_gateway_record" {
   zone_id = var.route53_zone_id
   name    = var.route53_record_name
-  type    = "CNAMES"
+  type    = "CNAME"
   ttl     = 300
 
   records = [aws_apigatewayv2_api.http_api.api_endpoint]

@@ -84,7 +84,7 @@ resource "aws_apigatewayv2_stage" "default_stage" {
 resource "aws_lambda_permission" "allow_api_gateway" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.my_lambda_function.function_name
+  function_name = aws_lambda_function.my_lambda_function.function_names
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
@@ -93,7 +93,7 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 resource "aws_route53_record" "api_gateway_record" {
   zone_id = var.route53_zone_id
   name    = var.route53_record_name
-  type    = "CNAME"
+  type    = "CNAMES"
   ttl     = 300
 
   records = [aws_apigatewayv2_api.http_api.api_endpoint]

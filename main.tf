@@ -30,10 +30,6 @@ data "aws_ecr_repository" "my_ecr" {
 }
 
 
-data "aws_iam_role" "existing_role" {
-  name = "lambda_exec_role"
-}
-
 resource "null_resource" "docker_build_and_tag" {
   provisioner "local-exec" {
     command = <<EOT

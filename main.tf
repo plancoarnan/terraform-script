@@ -29,6 +29,10 @@ data "aws_ecr_repository" "my_ecr" {
   name = var.repository_name
 }
 
+data "aws_ecr_repository" "my_ecr" {
+  name = var.repository_name
+}
+
 resource "null_resource" "docker_build_and_tag" {
   provisioner "local-exec" {
     command = <<EOT

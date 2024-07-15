@@ -6,46 +6,48 @@ variable "region" {
 variable "ecr_image_uri" {
   description = "The URI of the ECR image to use for the Lambda function"
   type        = string
-  default = "200262187471.dkr.ecr.ap-southeast-1.amazonaws.com/everestappdcebfd55/nextappstackfunctione45a3c19repo:nextappstackfunction-0eed6328b9db-v1"
 }
 
+variable "lambda_function_name" {
+  description = "The name of the Lambda function"
+  type        = string
+}
+
+variable "api_gateway_name" {
+  description = "The name of the API Gateway"
+  type        = string
+}
+
+variable "existing_iam_role_arn" {
+  description = "The ARN of the existing IAM role for the Lambda function"
+  type        = string
+}
+
+variable "route53_zone_id" {
+  description = "The Route 53 Hosted Zone ID"
+  type        = string
+}
+
+variable "route53_record_name" {
+  description = "The Route 53 record name"
+  type        = string
+}
+
+variable "certificate_arn" {
+  description = "The ARN of the ACM certificate"
+  type        = string
+}
 
 provider "aws" {
   region = var.region
 }
 
-# Lambda IAM role
-resource "aws_iam_role" "lambda_exec_role" {
-  name = "lambda_exec_role"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
-}
-
-# Attach the AWSLambdaBasicExecutionRole to the IAM role
-resource "aws_iam_role_policy_attachment" "lambda_basic_exec_role_attach" {
-  role       = aws_iam_role.lambda_exec_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
 # Lambda function
 resource "aws_lambda_function" "my_lambda_function" {
-  function_name     = "my_container_lambda"
+  function_name     = var.lambda_function_name
   image_uri         = var.ecr_image_uri
   package_type      = "Image"
-  role              = aws_iam_role.lambda_exec_role.arn
+  role              = var.existing_iam_role_arn
   timeout           = 30
 
   lifecycle {
@@ -57,7 +59,7 @@ resource "aws_lambda_function" "my_lambda_function" {
 
 # API Gateway HTTP API
 resource "aws_apigatewayv2_api" "http_api" {
-  name          = "my_http_api"
+  name          = var.api_gateway_name
   protocol_type = "HTTP"
 }
 
@@ -92,8 +94,37 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
 
-output "api_endpoint" {
-  description = "The HTTP API endpoint"
-  value       = aws_apigatewayv2_api.http_api.api_endpoint
+# API Gateway Custom Domain Name
+resource "aws_apigatewayv2_domain_name" "custom_domain" {
+  domain_name = var.route53_record_name
+  domain_name_configuration {
+    certificate_arn = var.certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
 }
 
+# API Gateway API Mapping
+resource "aws_apigatewayv2_api_mapping" "api_mapping" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  domain_name = aws_apigatewayv2_domain_name.custom_domain.domain_name
+  stage       = aws_apigatewayv2_stage.default_stage.name
+}
+
+# Route 53 Alias Record for Custom Domain
+resource "aws_route53_record" "api_gateway_record" {
+  zone_id = var.route53_zone_id
+  name    = var.route53_record_name
+  type    = "A"
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration.target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+output "api_endpoint" {
+  description = "The custom domain name endpoint"
+  value       = aws_apigatewayv2_domain_name.custom_domain.domain_name
+}

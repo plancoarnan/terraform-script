@@ -3,6 +3,16 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
+variable "new_image_tag" {
+  description = "The new image tag for the Lambda function"
+  type        = string
+}
+
+variable "ecr_repository_name" {
+  description = "The name of the ECR repository"
+  type        = string
+}
+
 variable "ecr_image_uri" {
   description = "The URI of the ECR image to use for the Lambda function"
   type        = string
@@ -118,8 +128,8 @@ resource "aws_route53_record" "api_gateway_record" {
   type    = "A"
 
   alias {
-    name                   = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration.target_domain_name
-    zone_id                = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration.hosted_zone_id
+    name                   = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.custom_domain.domain_name_configuration[0].hosted_zone_id
     evaluate_target_health = false
   }
 }

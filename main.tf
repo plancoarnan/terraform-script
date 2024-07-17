@@ -3,10 +3,6 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
-variable "new_image_tag" {
-  description = "The new image tag for the Lambda function"
-  type        = string
-}
 
 variable "ecr_repository_name" {
   description = "The name of the ECR repository"
